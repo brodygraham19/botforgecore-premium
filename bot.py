@@ -1,5 +1,5 @@
-# bot.py — ForgeBot (verify + tickets + auto-builder)
-# discord.py 2.4.x
+# ForgeBot Core (Verify + Ticket System)
+# Works with discord.py 2.4.x and Railway hosting
 
 import os
 import asyncio
@@ -7,8 +7,10 @@ import discord
 from discord import app_commands, Interaction, Embed
 from discord.ui import View, Button, button
 
-# ---------- Config you can change ----------
-EMBED_COLOR = discord.Color.from_rgb(10, 20, 35)  # midnight blue
+# ---------------------------------
+# ⚙️ CONFIG SETTINGS
+# ---------------------------------
+EMBED_COLOR = discord.Color.from_rgb(15, 25, 45)  # midnight blue
 ROLE_NAMES = [
     "Owner",
     "admin",
@@ -26,17 +28,20 @@ VERIFY_ROLE = "Verified"
 QUARANTINE_ROLE = "Quarantine"
 TICKET_SUPPORT_ROLE = "Ticket Support"
 TICKETS_CATEGORY = "Support Tickets"
-CLOSED_TICKETS_CATEGORY = "Closed Tickets"
 VERIFY_CHANNEL = "verify"
 TICKETS_CHANNEL = "tickets"
-# ------------------------------------------
 
+# ---------------------------------
+# 🔌 SETUP BOT
+# ---------------------------------
 intents = discord.Intents.default()
 intents.members = True
 bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
-# ---------- Verify Button ----------
+# ---------------------------------
+# 🟢 VERIFY BUTTON
+# ---------------------------------
 class VerifyView(View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -44,42 +49,42 @@ class VerifyView(View):
     @button(label="Verify", style=discord.ButtonStyle.success, custom_id="forge_verify_btn")
     async def verify(self, _btn: Button, interaction: Interaction):
         guild = interaction.guild
-        vr = discord.utils.get(guild.roles, name=VERIFY_ROLE)
-        qr = discord.utils.get(guild.roles, name=QUARANTINE_ROLE)
-        if vr is None:
+        verify_role = discord.utils.get(guild.roles, name=VERIFY_ROLE)
+        quarantine_role = discord.utils.get(guild.roles, name=QUARANTINE_ROLE)
+
+        if not verify_role:
             await interaction.response.send_message(
-                f"❗ The **{VERIFY_ROLE}** role doesn’t exist yet. Run **/build** first.",
+                f"❗ The **{VERIFY_ROLE}** role doesn’t exist yet. Run `/build` first.",
                 ephemeral=True,
             )
             return
 
-        changes = []
-        if vr not in interaction.user.roles:
-            await interaction.user.add_roles(vr, reason="ForgeBot verify")
-            changes.append(f"✅ Added **{VERIFY_ROLE}**")
+        added, removed = False, False
+        if verify_role not in interaction.user.roles:
+            await interaction.user.add_roles(verify_role)
+            added = True
 
-        if qr and qr in interaction.user.roles:
-            await interaction.user.remove_roles(qr, reason="ForgeBot verify")
-            changes.append(f"🧹 Removed **{QUARANTINE_ROLE}**")
+        if quarantine_role and quarantine_role in interaction.user.roles:
+            await interaction.user.remove_roles(quarantine_role)
+            removed = True
 
-        if changes:
-            await interaction.response.send_message("\n".join(changes), ephemeral=True)
-        else:
-            await interaction.response.send_message("You’re already verified ✅", ephemeral=True)
+        msg = "✅ Verified!"
+        if added or removed:
+            msg += f" (Added: {VERIFY_ROLE})"
+        await interaction.response.send_message(msg, ephemeral=True)
 
-
-# ---------- Ticket Buttons ----------
+# ---------------------------------
+# 🎟️ TICKET BUTTONS
+# ---------------------------------
 class CloseTicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @button(label="Close Ticket", style=discord.ButtonStyle.danger, custom_id="forge_close_ticket")
-    async def close(self, _btn: Button, interaction: Interaction):
-        if interaction.channel and isinstance(interaction.channel, discord.TextChannel):
-            await interaction.response.send_message("Closing… 🔒", ephemeral=True)
-            await asyncio.sleep(1)
-            await interaction.channel.delete(reason=f"Closed by {interaction.user}")
-
+    async def close_ticket(self, _btn: Button, interaction: Interaction):
+        await interaction.response.send_message("Closing ticket... 🔒", ephemeral=True)
+        await asyncio.sleep(1)
+        await interaction.channel.delete(reason=f"Closed by {interaction.user}")
 
 class TicketPanelView(View):
     def __init__(self):
@@ -89,24 +94,23 @@ class TicketPanelView(View):
     async def create_ticket(self, _btn: Button, interaction: Interaction):
         guild = interaction.guild
         support_role = discord.utils.get(guild.roles, name=TICKET_SUPPORT_ROLE)
-        if support_role is None:
+        if not support_role:
             await interaction.response.send_message(
-                f"❗ The **{TICKET_SUPPORT_ROLE}** role doesn’t exist yet. Run **/build** first.",
+                f"❗ The **{TICKET_SUPPORT_ROLE}** role doesn’t exist yet. Run `/build` first.",
                 ephemeral=True,
             )
             return
 
-        cat = discord.utils.get(guild.categories, name=TICKETS_CATEGORY)
-        if cat is None:
-            cat = await guild.create_category(TICKETS_CATEGORY, reason="ForgeBot: create tickets category")
+        category = discord.utils.get(guild.categories, name=TICKETS_CATEGORY)
+        if not category:
+            category = await guild.create_category(TICKETS_CATEGORY, reason="ForgeBot Ticket System")
 
-        safe_name = interaction.user.name.lower().replace(" ", "-")
-        base = f"ticket-{safe_name}"
-        name = base
+        base_name = f"ticket-{interaction.user.name.lower().replace(' ', '-')}"
+        name = base_name
         i = 1
         while discord.utils.get(guild.channels, name=name):
             i += 1
-            name = f"{base}-{i}"
+            name = f"{base_name}-{i}"
 
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
@@ -114,52 +118,67 @@ class TicketPanelView(View):
             support_role: discord.PermissionOverwrite(view_channel=True, send_messages=True),
         }
 
-        channel = await guild.create_text_channel(name=name, category=cat, overwrites=overwrites)
-        embed = Embed(title="Support Ticket", description="A team member will assist you shortly.", color=EMBED_COLOR)
+        channel = await guild.create_text_channel(name=name, category=category, overwrites=overwrites)
+        embed = Embed(title="🎟️ Support Ticket", description="A staff member will assist you shortly.", color=EMBED_COLOR)
         await channel.send(embed=embed, view=CloseTicketView())
-        await interaction.response.send_message(f"📨 Created {channel.mention}", ephemeral=True)
+        await interaction.response.send_message(f"📨 Ticket created: {channel.mention}", ephemeral=True)
 
-
-# ---------- /build Command ----------
+# ---------------------------------
+# 🧱 /BUILD COMMAND
+# ---------------------------------
 @tree.command(name="build", description="Create roles, channels, and post verify/ticket panels (admin only).")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def build(interaction: Interaction):
     await interaction.response.defer(ephemeral=True, thinking=True)
     g = interaction.guild
+
+    # Ensure roles exist
     for name in ROLE_NAMES:
         if not discord.utils.get(g.roles, name=name):
-            await g.create_role(name=name, reason="ForgeBot /build")
-    await interaction.followup.send("✅ Roles ensured. Building channels...")
+            await g.create_role(name=name, reason="ForgeBot setup")
 
-    # Verify & Ticket channels
-    for ch_name in [VERIFY_CHANNEL, TICKETS_CHANNEL]:
-        if not discord.utils.get(g.text_channels, name=ch_name):
-            await g.create_text_channel(name=ch_name, reason="ForgeBot /build")
+    await interaction.followup.send("✅ Roles created or already exist.")
 
-    vchan = discord.utils.get(g.text_channels, name=VERIFY_CHANNEL)
-    tchan = discord.utils.get(g.text_channels, name=TICKETS_CHANNEL)
+    # Create channels if missing
+    verify_channel = discord.utils.get(g.text_channels, name=VERIFY_CHANNEL)
+    tickets_channel = discord.utils.get(g.text_channels, name=TICKETS_CHANNEL)
 
-    if vchan:
-        embed = Embed(title="Verify", description="Press **Verify** to access the server.", color=EMBED_COLOR)
-        await vchan.send(embed=embed, view=VerifyView())
+    if not verify_channel:
+        verify_channel = await g.create_text_channel(VERIFY_CHANNEL, reason="ForgeBot setup")
+    if not tickets_channel:
+        tickets_channel = await g.create_text_channel(TICKETS_CHANNEL, reason="ForgeBot setup")
 
-    if tchan:
-        embed = Embed(title="Tickets", description="Press **Create Ticket** for help.", color=EMBED_COLOR)
-        await tchan.send(embed=embed, view=TicketPanelView())
+    # Send panels
+    verify_embed = Embed(title="✅ Verify Here", description="Click the button below to verify yourself.", color=EMBED_COLOR)
+    await verify_channel.send(embed=verify_embed, view=VerifyView())
 
-    await interaction.followup.send("✅ ForgeBot build complete.", ephemeral=True)
+    ticket_embed = Embed(title="🎟️ Need Help?", description="Click below to create a support ticket.", color=EMBED_COLOR)
+    await tickets_channel.send(embed=ticket_embed, view=TicketPanelView())
 
+    await interaction.followup.send("✅ Setup complete! Verify & Ticket panels created.", ephemeral=True)
 
-# ---------- Bot lifecycle ----------
+# ---------------------------------
+# 🚀 ON READY
+# ---------------------------------
 @bot.event
 async def on_ready():
     bot.add_view(VerifyView())
     bot.add_view(TicketPanelView())
     bot.add_view(CloseTicketView())
-    await tree.sync()
-    print(f"Logged in as {bot.user} (ready)")
 
+    try:
+        synced = await tree.sync()
+        print(f"Slash commands synced: {len(synced)} command(s)")
+    except Exception as e:
+        print(f"Slash sync error: {e}")
 
+    print(f"✅ Logged in as {bot.user}")
+
+# ---------------------------------
+# ▶️ START
+# ---------------------------------
 if __name__ == "__main__":
     TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+    if not TOKEN:
+        raise ValueError("Missing DISCORD_BOT_TOKEN in environment!")
     bot.run(TOKEN)
