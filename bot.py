@@ -3,15 +3,17 @@ from discord.ext import commands
 from discord.ui import View, Button
 import os
 
---- Setup ---,
+---- Setup ----,
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
---- Verify View ---,
+
+---- Verify View ----,
 class VerifyView(View):
     def init(self):
         super().init(timeout=None)
         self.add_item(Button(label=" Verify", style=discord.ButtonStyle.green, custom_id="verify_button"))
+
 
 @bot.event
 async def on_ready():
@@ -22,7 +24,8 @@ async def on_ready():
     except Exception as e:
         print(f" Sync error: {e}")
 
---- Verify Button Logic ---,
+
+---- Verify Button ----,
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
     if interaction.data and interaction.data.get("custom_id") == "verify_button":
@@ -33,22 +36,25 @@ async def on_interaction(interaction: discord.Interaction):
         else:
             await interaction.response.send_message(" 'Verified' role not found.", ephemeral=True)
 
---- Ticket Command ---,
-@bot.tree.command(name="ticketsetup", description="Create a ticket system setup (Admin only)")
+
+---- Ticket Setup ----,
+@bot.tree.command(name="ticketsetup", description="Create a ticket panel (Admin only)")
 async def ticketsetup(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
-        return await interaction.response.send_message(" You need admin permissions to run this.", ephemeral=True)
+        return await interaction.response.send_message(" You need admin permissions.", ephemeral=True)
 
     embed = discord.Embed(
         title=" Support Tickets",
         description="Click below to create a support ticket.",
-        color=discord.Color.blue()
+        color=discord.Color.blurple()
     )
     view = View()
     view.add_item(Button(label=" Create Ticket", style=discord.ButtonStyle.blurple, custom_id="create_ticket"))
     await interaction.channel.send(embed=embed, view=view)
     await interaction.response.send_message(" Ticket system created.", ephemeral=True)
 
+
+---- Ticket Create ----,
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
     if interaction.data and interaction.data.get("custom_id") == "create_ticket":
@@ -64,5 +70,18 @@ async def on_interaction(interaction: discord.Interaction):
         )
         await interaction.response.send_message(f" Ticket created: {channel.mention}", ephemeral=True)
 
---- Run Bot ---,
+
+---- Run Bot ----,
 bot.run(os.getenv("DISCORD_BOT_TOKEN"))
+:Screenshot20220629151151:
+Click to react
+:skull:
+Click to react
+:fire:
+Click to react
+Add Reaction
+Edit
+Forward
+More
+
+Message #general
