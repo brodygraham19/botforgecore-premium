@@ -1,28 +1,23 @@
-# BotForgeCore Premium
+# ForgeBot Ultimate (BotForge)
+All-in-one Discord bot for your BotForge server: verification, tickets, shop, branding, utilities, and moderation.
 
-Features:
-- Button-based verification in **#portal**
-- Auto-creates roles: `Verified`, `Support`
-- Ticket system with **Claim** and **Close** buttons
-- Logging channel `#botforge-logs`
-- Admin slash commands: `/ban`, `/kick`, `/warn`, `/unban`, `/slowmode`, `/clear`, `/announce`
-- Cooldowns to prevent spam
-- Midnight blue brand embeds with skull footer
+## Quick Start (Railway)
+1. Create a new Railway project from this repo/zip.
+2. Add environment variable: `DISCORD_BOT_TOKEN` (keep your current token).
+3. Deploy. Railway will run `python bot.py` via the `Procfile`.
 
-## Run locally
+## Local Run (Windows / macOS / Linux)
 ```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python -m venv .venv
+. .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-copy env.example .env     # or rename
-# put your token into .env
+# Put your token in .env (copy .env.example -> .env and paste it)
 python bot.py
 ```
 
-## Railway
-- Add a new service from repo or upload these files.
-- Set an environment variable: `DISCORD_BOT_TOKEN`.
-- Start command: `python bot.py`
-
-## Replit
-- Upload files, create a `.env` secret `DISCORD_BOT_TOKEN`, run `python bot.py`.
+### First Commands
+- `/setup` -> auto-creates roles & channels (orders, support, logs, showcase).
+- `/about`, `/theme`, `/logo` -> branding.
+- `/verify` `/ticket open` `/ticket close`
+- `/listbots` `/price` `/order` -> opens a ticket for orders.
+- `/moderation` tools -> `/ban` `/mute` `/purge` etc.
