@@ -2,3 +2,4 @@ discord.py==2.3.2
 aiohttp
 python-dotenv
 asyncio
+audioop-lts
