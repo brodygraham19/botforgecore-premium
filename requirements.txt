@@ -1,5 +1,2 @@
-discord.py==2.3.2
-aiohttp
-python-dotenv
-asyncio
-audioop-lts
+discord.py==2.4.0
+python-dotenv==1.0.1
