@@ -1,0 +1,22 @@
+{
+  "brand_name": "BotForge",
+  "theme_color_hex": "#0C163B",
+  "accent_color_hex": "#00E5FF",
+  "logo_url": "https://i.imgur.com/5Y8v0jS.png",
+  "roles": {
+    "verified": "Verified",
+    "customer": "Customer",
+    "developer": "Developer",
+    "moderator": "Moderator"
+  },
+  "channels": {
+    "orders": "bot-orders",
+    "support": "support",
+    "news": "forge-news",
+    "showcase": "showcase",
+    "logs": "forge-logs"
+  },
+  "categories": {
+    "tickets": "Tickets"
+  }
+}
